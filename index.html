@@ -93,9 +93,7 @@
 
 <div class="video-container" id="videoContainer">
 
-    <!-- Local videos will be added dynamically -->
-
-    <!-- Jumpshare Video 3 -->
+    <!-- Jumpshare videos remain static -->
     <div class="video-item" data-video="jumpshare3">
         <div class="embed-wrapper">
             <iframe src="https://jumpshare.com/embed/FvVicCPZfGU6vP8ODpxg" frameborder="0" allowfullscreen></iframe>
@@ -104,7 +102,6 @@
         <button class="like-btn">❤️ 0</button>
     </div>
 
-    <!-- Jumpshare Video 5 -->
     <div class="video-item" data-video="jumpshare5">
         <div class="embed-wrapper">
             <iframe src="https://jumpshare.com/embed/yXJerJAzir7JMJKTCySF" frameborder="0" allowfullscreen></iframe>
@@ -113,75 +110,86 @@
         <button class="like-btn">❤️ 0</button>
     </div>
 
-    <!-- New Jumpshare Embed 1 (replaced) -->
-    <div class="video-item" data-video="new_embed1">
-        <div class="embed-wrapper">
-            <iframe src="https://jumpshare.com/embed/LSDE8nM1U1xh1IIug0iy" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>
-        </div>
-        <div class="title">New Embed 1</div>
-        <button class="like-btn">❤️ 0</button>
-    </div>
-
-    <!-- New Jumpshare Embed 2 (replaced) -->
-    <div class="video-item" data-video="new_embed2">
-        <div class="embed-wrapper">
-            <iframe src="https://jumpshare.com/embed/xbGv1TOSxl89b58FgEAY" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>
-        </div>
-        <div class="title">New Embed 2</div>
-        <button class="like-btn">❤️ 0</button>
-    </div>
-
 </div>
 
 <script>
 const container = document.getElementById("videoContainer");
-
-// ======= Load local videos dynamically =======
-const localVideos = ["video1.mp4", "video2.mp4"]; // your existing videos
 const localVideoElements = [];
 
-localVideos.forEach((fileName, index) => {
-    const videoId = "local_" + index;
+// ---------- AUTOMATIC GITHUB FOLDER VIDEO LOADER ----------
+// CHANGE THESE TO MATCH YOUR REPO
+const username = "deadaddeadad32-cell";      // Your GitHub username
+const repo = "tiktok-style";                 // Your repo name
+const folder = "videos";                     // Folder containing videos
+const branch = "main";                       // Branch name
 
-    const item = document.createElement("div");
-    item.className = "video-item";
-    item.dataset.video = videoId;
+const apiUrl = `https://api.github.com/repos/${username}/${repo}/contents/${folder}?ref=${branch}`;
 
-    const wrapper = document.createElement("div");
-    wrapper.className = "embed-wrapper";
+fetch(apiUrl)
+  .then(res => res.json())
+  .then(files => {
+    files.forEach((file, index) => {
+        if(file.name.endsWith(".mp4")) { // only load mp4s
+            const videoId = "local_" + index;
 
-    const video = document.createElement("video");
-    video.src = "videos/" + fileName;
-    video.muted = true;
-    video.controls = true;
-    video.preload = "metadata";
+            const item = document.createElement("div");
+            item.className = "video-item";
+            item.dataset.video = videoId;
 
-    wrapper.appendChild(video);
-    item.appendChild(wrapper);
+            const wrapper = document.createElement("div");
+            wrapper.className = "embed-wrapper";
 
-    const title = document.createElement("div");
-    title.className = "title";
-    title.innerText = fileName;
-    item.appendChild(title);
+            const video = document.createElement("video");
+            video.src = file.download_url;
+            video.muted = true;
+            video.controls = true;
+            video.preload = "metadata";
 
-    const btn = document.createElement("button");
-    btn.className = "like-btn";
-    let likes = parseInt(localStorage.getItem(videoId + "_likes")) || 0;
-    btn.innerText = `❤️ ${likes}`;
-    btn.addEventListener("click", () => {
-        likes++;
-        localStorage.setItem(videoId + "_likes", likes);
-        btn.innerText = `❤️ ${likes}`;
-        btn.style.transform = "scale(1.2)";
-        setTimeout(() => { btn.style.transform = "scale(1)"; }, 150);
+            wrapper.appendChild(video);
+            item.appendChild(wrapper);
+
+            const title = document.createElement("div");
+            title.className = "title";
+            title.innerText = file.name;
+            item.appendChild(title);
+
+            const btn = document.createElement("button");
+            btn.className = "like-btn";
+            let likes = parseInt(localStorage.getItem(videoId + "_likes")) || 0;
+            btn.innerText = `❤️ ${likes}`;
+            btn.addEventListener("click", () => {
+                likes++;
+                localStorage.setItem(videoId + "_likes", likes);
+                btn.innerText = `❤️ ${likes}`;
+                btn.style.transform = "scale(1.2)";
+                setTimeout(() => { btn.style.transform = "scale(1)"; }, 150);
+            });
+            item.appendChild(btn);
+
+            container.insertBefore(item, container.firstChild);
+            localVideoElements.push(video);
+        }
     });
-    item.appendChild(btn);
 
-    container.insertBefore(item, container.firstChild); // add local videos at top
-    localVideoElements.push(video);
-});
+    // Autoplay visible videos
+    function checkVisibleVideo() {
+        localVideoElements.forEach(video => {
+            const rect = video.getBoundingClientRect();
+            if(rect.top >= 0 && rect.bottom <= window.innerHeight){
+                video.play();
+            } else {
+                video.pause();
+            }
+        });
+    }
 
-// Like buttons for Jumpshare videos
+    container.addEventListener("scroll", checkVisibleVideo);
+    window.addEventListener("load", checkVisibleVideo);
+
+  })
+  .catch(err => console.error("Failed to fetch videos from GitHub:", err));
+
+// ---------- Like buttons for iframe videos ----------
 document.querySelectorAll(".video-item").forEach(item => {
     const videoId = item.dataset.video;
     const likeBtn = item.querySelector(".like-btn");
@@ -198,21 +206,6 @@ document.querySelectorAll(".video-item").forEach(item => {
         });
     }
 });
-
-// Autoplay visible local videos
-function checkVisibleVideo() {
-    localVideoElements.forEach(video => {
-        const rect = video.getBoundingClientRect();
-        if(rect.top >= 0 && rect.bottom <= window.innerHeight){
-            video.play();
-        } else {
-            video.pause();
-        }
-    });
-}
-
-container.addEventListener("scroll", checkVisibleVideo);
-window.addEventListener("load", checkVisibleVideo);
 </script>
 
 </body>
